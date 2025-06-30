@@ -1,0 +1,47 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+scrape_configs:
+
+  - job_name: 'zimbra-nodes'
+    static_configs:
+      - targets: ['IP_ADDRESS_NODE_1:9100', 'IP_ADDRESS_NODE_1:9100', 'IP_ADDRESS_NODE_1:9100']
+
+  - job_name: 'zimbra-ldap'
+    static_configs:
+      - targets: ['IP_ADDRESS:9100']
+        labels:
+          server_role: 'ldap'  # Label personnalisé
+          instance: 'ldap01'   # Label standard
+  - job_name: 'zimbra-ldap-zram_metrics'
+    metrics_path: '/usr/local/bin/zram_exporter.sh'
+    static_configs:
+      - targets: ['IP_ADDRESS:9090']
+
+  - job_name: 'zimbra-mailstore'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['IP_ADDRESS:9100']
+        labels:
+          server_role: 'mailstore'  # Label personnalisé
+          instance: 'mailstore01'   # Label standard
+    params:
+      module: [web_errors]
+
+  - job_name: 'zimbra-mta-proxy'
+    static_configs:
+      - targets: ['IP_ADDRESS:9100']
+        labels:
+          server_role: 'mta-proxy'  # Label personnalisé
+          instance: 'mta-proxy01'   # Label standard
+    params:
+      module: [web_errors]
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+rule_files:
+  - alert.rules.yml

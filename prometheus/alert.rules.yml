@@ -1,0 +1,79 @@
+groups:
+  - name: zimbra-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.instance }} down"
+          description: "{{ $labels.job }} on {{ $labels.instance }} is down for more than 5 minutes"
+
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/opt/zimbra"} / node_filesystem_size_bytes{mountpoint="/opt/zimbra"} * 100) < 15
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value | humanize }}% space left on /opt/zimbra"
+
+  - name: zimbra-ldap-alerts
+    rules:
+      - alert: HighLDAPConnections
+        expr: zimbra_ldap_connections{instance="ldap01"} > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High LDAP connections on {{ $labels.instance }}"
+          description: "LDAP connections: {{ $value }}"  
+  - name: zimbra-mta-proxy-alerts
+    rules:
+      - alert: MtaProxy01_WebmailErrors
+        expr: |
+          sum by (instance) (
+            rate(zimbra_http_5xx_errors_total{
+              instance="mta-proxy01",
+              path=~"/service/.*"
+            }[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: critical
+          server_type: webmail
+        annotations:
+          summary: "Erreurs webmail sur {{ $labels.instance }}"
+          description: "Taux d'erreur HTTP 5xx: {{ $value }} erreurs/minute"
+          playbook: "https://wiki.example.com/Webmail_Troubleshooting"
+
+  - name: zimbra-mailstore-alerts
+    rules:
+    # Alerte pour espace disque critique sur le mailstore spécifique
+    - alert: Mailstore_DiskCritical
+      expr: |
+        (
+          node_filesystem_avail_bytes{instance="mailstore01", mountpoint="/opt/zimbra/store"} 
+          / 
+          node_filesystem_size_bytes{instance="mailstore01", mountpoint="/opt/zimbra/store"}
+          * 100
+        ) < 10
+      for: 10m
+      labels:
+        severity: critical
+        server: mailstore01
+      annotations:
+        summary: "DISQUE CRITIQUE sur {{ $labels.instance }}"
+        description: "Il ne reste que {{ $value | humanize }}% d'espace sur /opt/zimbra/store"
+
+    # Alerte pour service mailboxd down sur un serveur spécifique
+    - alert: Mailstore01_MailboxdDown
+      expr: up{job="zimbra-mailstore", instance="mailstore01"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        server: mailstore01
+      annotations:
+        summary: "Mailboxd DOWN sur {{ $labels.instance }}"
+        description: "Le service mailboxd est down depuis 5 minutes"

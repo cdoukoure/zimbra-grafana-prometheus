@@ -1,0 +1,7 @@
+alertmanager/
+
+grafana/var/
+grafana/etc/grafana.ini
+
+
+prometheus/prometheus.yml
