@@ -1,0 +1,16 @@
+[Unit]
+Description=Zimbra 10 Exporter for Prometheus
+After=network.target
+
+[Service]
+Type=simple
+User=zimbra
+ExecStart=/usr/bin/python3 /opt/zimbra_exporter.py
+Environment="ZEX_PORT=9093"
+Environment="ZEX_TIMEOUT=10"
+Environment="ZEX_DEBUG_JSON=false"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
